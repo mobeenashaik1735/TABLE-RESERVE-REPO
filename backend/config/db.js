@@ -11,9 +11,9 @@ try {
   const path = require('path');
   const dbPath = path.resolve(__dirname, '../tablereserve.sqlite');
   sqliteDb = new DatabaseSync(dbPath);
-  console.log(`[AI Studio DB] Persistent SQLite initialized successfully at: ${dbPath}`);
+  console.log(`[DB] Persistent SQLite initialized successfully at: ${dbPath}`);
 } catch (e) {
-  console.error('[AI Studio DB] Failed to initialize node:sqlite', e);
+  console.error('[DB] Failed to initialize node:sqlite', e);
 }
 
 // Function to translate PostgreSQL SQL to SQLite SQL
@@ -74,7 +74,7 @@ function splitAlterTable(sqlStr) {
 if (process.env.DATABASE_URL) {
   const isLocalhost = process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
   if (isLocalhost) {
-    console.log('[AI Studio DB] DATABASE_URL points to localhost, which is unreachable in Cloud Run. Using in-memory SQLite.');
+    console.log('[DB] DATABASE_URL points to localhost, which is unreachable in Cloud Run. Using in-memory SQLite.');
     useMock = true;
   } else {
     try {
@@ -83,14 +83,14 @@ if (process.env.DATABASE_URL) {
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
         connectionTimeoutMillis: 3000 // fail fast if remote DB is unreachable (3 seconds)
       });
-      console.log('[AI Studio DB] Attempting connection to real PostgreSQL database...');
+      console.log('[DB] Attempting connection to real PostgreSQL database...');
     } catch (err) {
-      console.warn('[AI Studio DB] Real DB connection failed to initialize, falling back to SQLite.', err.message);
+      console.warn('[DB] Real DB connection failed to initialize, falling back to SQLite.', err.message);
       useMock = true;
     }
   }
 } else {
-  console.log('[AI Studio DB] No DATABASE_URL found. Running with in-memory SQLite.');
+  console.log('[DB] No DATABASE_URL found. Running with in-memory SQLite.');
   useMock = true;
 }
 
@@ -105,7 +105,7 @@ class MockPool {
       try {
         return await realPool.query(sql, params);
       } catch (err) {
-        console.error('[AI Studio DB] Real DB query failed, switching to SQLite backup.', err.message);
+        console.error('[DB] Real DB query failed, switching to SQLite backup.', err.message);
         useMock = true;
       }
     }
@@ -124,7 +124,7 @@ class MockPool {
         } catch (err) {
           // If column already exists, ignore
           if (!err.message.includes('duplicate column name') && !err.message.includes('already exists')) {
-            console.error('[AI Studio DB SQLite Error in Alter]', err.message, 'SQL:', translatedStmt);
+            console.error('[DB SQLite Error in Alter]', err.message, 'SQL:', translatedStmt);
           }
         }
       }
@@ -165,7 +165,7 @@ class MockPool {
         return { rows: [], rowCount: result.changes };
       }
     } catch (err) {
-      console.error('[AI Studio DB SQLite Error]', err.message, 'Original SQL:', sql, 'Translated:', translated);
+      console.error('[DB SQLite Error]', err.message, 'Original SQL:', sql, 'Translated:', translated);
       throw err;
     }
   }
@@ -176,7 +176,7 @@ class MockPool {
         const client = await realPool.connect();
         return client;
       } catch (err) {
-        console.error('[AI Studio DB] Real DB connection failed, using SQLite fallback.', err.message);
+        console.error('[DB] Real DB connection failed, using SQLite fallback.', err.message);
         useMock = true;
       }
     }

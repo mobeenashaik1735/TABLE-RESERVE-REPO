@@ -73,7 +73,7 @@ async function setupVite() {
       root: path.join(__dirname, '../frontend')
     });
     app.use(vite.middlewares);
-    console.log('[AI Studio Server] Vite middleware integrated successfully.');
+    console.log('[Server] Vite middleware integrated successfully.');
   } else {
     const path = require('path');
     const distPath = path.join(__dirname, '../frontend/dist');
@@ -81,7 +81,7 @@ async function setupVite() {
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
-    console.log('[AI Studio Server] Serving built static files from /frontend/dist.');
+    console.log('[Server] Serving built static files from /frontend/dist.');
   }
 }
 
@@ -100,9 +100,9 @@ async function start() {
       let needsMigration = false;
       try {
         await pool.query("SELECT 1 FROM users LIMIT 1");
-        console.log('[AI Studio DB Check] The "users" table already exists. Preserving database state.');
+        console.log('[Server] DB Check] The "users" table already exists. Preserving database state.');
       } catch (e) {
-        console.log('[AI Studio DB Check] The "users" table was not found. Database migration needed.');
+        console.log('[Server] DB Check] The "users" table was not found. Database migration needed.');
         needsMigration = true;
       }
 

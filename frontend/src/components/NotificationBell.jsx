@@ -15,21 +15,37 @@ function NotificationBell() {
   useEffect(() => {
     if (!user?.id) return;
 
-    // Load initial historical notifications from the database
     API.get(`/notifications/${user.id}`)
       .then((res) => {
-        setNotifications(res.data.map((n) => ({
-          id: n.id,
-          type: n.type || 'general',
-          subject: n.subject || 'TableReserve Notification',
-          message: n.message || '',
-          email: n.email,
-          phone: n.phone,
-          sent_via_smtp: n.sent_via_smtp,
-          sent_via_sms: n.sent_via_sms,
-          time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          date: new Date(n.created_at).toLocaleDateString(),
-        })));
+        const formatted = res.data.map((n) => {
+          const isoTimestamp = n.created_at && !n.created_at.endsWith('Z') && !n.created_at.includes('+')
+            ? `${n.created_at.replace(' ', 'T')}Z`
+            : n.created_at;
+
+          return {
+            id: n.id,
+            type: n.type || 'general',
+            subject: n.subject || 'TableReserve Notification',
+            message: n.message || '',
+            email: n.email,
+            phone: n.phone,
+            sent_via_smtp: n.sent_via_smtp,
+            sent_via_sms: n.sent_via_sms,
+            time: new Date(isoTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            date: new Date(isoTimestamp).toLocaleDateString(),
+            raw_timestamp: new Date(isoTimestamp).getTime()
+          };
+        });
+
+        setNotifications(formatted);
+
+        const lastViewed = localStorage.getItem(`last_viewed_notif_${user.id}`);
+        if (lastViewed) {
+          const unread = formatted.filter(n => n.raw_timestamp > parseInt(lastViewed)).length;
+          setUnreadCount(unread);
+        } else {
+          setUnreadCount(formatted.length);
+        }
       })
       .catch((err) => console.error('Failed to load notifications:', err));
 
@@ -46,11 +62,18 @@ function NotificationBell() {
         phone: user.phone,
         sent_via_smtp: false,
         sent_via_sms: false,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         date: new Date().toLocaleDateString(),
+        raw_timestamp: Date.now()
       };
       setNotifications((prev) => [newNotif, ...prev]);
-      setUnreadCount((prev) => prev + 1);
+      
+      setOpen((isOpen) => {
+        if (!isOpen) {
+          setUnreadCount((prev) => prev + 1);
+        }
+        return isOpen;
+      });
     });
 
     return () => socket.disconnect();
@@ -63,9 +86,11 @@ function NotificationBell() {
       <button
         type="button"
         onClick={() => {
-          setOpen(!open);
-          if (!open) {
+          const nextOpenState = !open;
+          setOpen(nextOpenState);
+          if (nextOpenState) {
             setUnreadCount(0);
+            localStorage.setItem(`last_viewed_notif_${user.id}`, Date.now().toString());
           }
         }}
         className="relative p-2 rounded-lg hover:bg-white/10 transition-colors"
@@ -73,8 +98,8 @@ function NotificationBell() {
       >
         🔔
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
-            {Math.min(unreadCount, 9)}
+          <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+            {unreadCount}
           </span>
         )}
       </button>
@@ -130,7 +155,6 @@ function NotificationBell() {
             </div>
 
             <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-              {/* Channel Selectors */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="border rounded-xl p-4 flex flex-col justify-between h-28 bg-blue-500/5 border-blue-200">
                   <span className="text-2xl">📧</span>
@@ -153,7 +177,6 @@ function NotificationBell() {
                 </div>
               </div>
 
-              {/* Email Client Layout */}
               <div className="border rounded-xl shadow-md overflow-hidden bg-white text-slate-800 text-left">
                 <div className="bg-slate-100 p-3 border-b text-xs space-y-1 text-slate-600 font-mono">
                   <p><span className="font-bold text-slate-800">From:</span> TableReserve &lt;noreply@tablereserve.com&gt;</p>
@@ -166,7 +189,6 @@ function NotificationBell() {
                 </div>
               </div>
 
-              {/* Twilio SMS Layout */}
               <div className="border rounded-2xl shadow-lg bg-slate-900 text-white max-w-sm mx-auto overflow-hidden">
                 <div className="bg-slate-800 p-3 text-center text-xs font-bold tracking-wider text-slate-300 border-b border-slate-700">
                   💬 TableReserve SMS (Twilio Sandbox)
@@ -181,7 +203,6 @@ function NotificationBell() {
                 </div>
               </div>
 
-              {/* Helpful instructions */}
               <div className="bg-amber-500/10 border border-amber-300/50 rounded-xl p-4 text-xs">
                 <p className="font-semibold text-amber-700 dark:text-amber-400 mb-1">💡 Real SMTP & SMS Configuration Tip:</p>
                 <p className={`${t.muted} leading-relaxed`}>
