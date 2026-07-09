@@ -78,14 +78,17 @@ async function setupVite() {
     const path = require('path');
     const distPath = path.join(__dirname, '../frontend/dist');
     app.use(express.static(distPath));
-    app.get('/*', (req, res) => {
+    
+    // Express 5 compatible named wildcard match string
+    app.get('/:splat*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
     console.log('[Server] Serving built static files from /frontend/dist.');
   }
 }
 
-const PORT = 3000;
+// Render dynamically provides a port, or falls back to 3000 locally
+const PORT = process.env.PORT || 3000;
 
 async function start() {
   await setupVite();
