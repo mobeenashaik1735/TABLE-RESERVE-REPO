@@ -1,7 +1,0 @@
-{
-  "name": "TableReserve",
-  "description": "A real-time restaurant table booking system with an AI assistant chatbot, live interactive floor maps, OTP verification, and waitlist management.",
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}
