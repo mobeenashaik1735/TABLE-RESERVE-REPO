@@ -62,7 +62,7 @@ app.use('/api/notifications', notificationRoutes);
 
 startReminderCron(io);
 
-// Integrate Vite Dev Server / Static files serving after API routes!
+// Decoupled Frontend/Backend routing handler
 async function setupVite() {
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = require('vite');
@@ -73,17 +73,14 @@ async function setupVite() {
       root: path.join(__dirname, '../frontend')
     });
     app.use(vite.middlewares);
-    console.log('[Server] Vite middleware integrated successfully.');
+    console.log('[Server] Vite middleware integrated successfully for local development.');
   } else {
-    const path = require('path');
-    const distPath = path.join(__dirname, '../frontend/dist');
-    app.use(express.static(distPath));
-    
-    // Express 5 compatible named wildcard match string
-    app.get(/.*/, (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    // In production, Vercel hosts the static assets. 
+    // We serve a healthy root status confirmation rather than searching for local static dist files.
+    app.get('/', (req, res) => {
+      res.json({ status: "healthy", message: "TableReserve API Backend is fully operational." });
     });
-    console.log('[Server] Serving built static files from /frontend/dist.');
+    console.log('[Server] Running in standalone API mode. Frontend routing handled by Vercel.');
   }
 }
 
