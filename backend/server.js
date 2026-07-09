@@ -80,7 +80,7 @@ async function setupVite() {
     app.use(express.static(distPath));
     
     // Express 5 compatible named wildcard match string
-    app.get('/:splat*', (req, res) => {
+    app.get(/.*/, (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
     console.log('[Server] Serving built static files from /frontend/dist.');
