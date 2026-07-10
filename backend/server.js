@@ -21,7 +21,15 @@ const { startReminderCron } = require('./cron/reminders');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+
+// 🟢 FIXED: Match Socket.io CORS rules with your Vercel URL
+const io = new Server(server, { 
+  cors: { 
+    origin: ['https://table-reserve-repo-frontend.vercel.app', 'http://localhost:3000'],
+    methods: ["GET", "POST"],
+    credentials: true
+  } 
+});
 
 // Provide a default JWT secret so registration/login works out of the box
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'tablereserve-super-secret-key';
@@ -44,7 +52,13 @@ io.on('connection', (socket) => {
   });
 });
 
-app.use(cors());
+// 🟢 FIXED: Explicitly allow Vercel to cross-communicate with backend routes
+app.use(cors({
+  origin: ['https://table-reserve-repo-frontend.vercel.app', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
@@ -75,8 +89,6 @@ async function setupVite() {
     app.use(vite.middlewares);
     console.log('[Server] Vite middleware integrated successfully for local development.');
   } else {
-    // In production, Vercel hosts the static assets. 
-    // We serve a healthy root status confirmation rather than searching for local static dist files.
     app.get('/', (req, res) => {
       res.json({ status: "healthy", message: "TableReserve API Backend is fully operational." });
     });
@@ -84,7 +96,6 @@ async function setupVite() {
   }
 }
 
-// Render dynamically provides a port, or falls back to 3000 locally
 const PORT = process.env.PORT || 3000;
 
 async function start() {
@@ -107,12 +118,10 @@ async function start() {
       }
 
       if (needsMigration) {
-        // 1. Run migrations to create tables safely
         console.log('Running automatic migrations...');
         const migrate = require('./scripts/migrate');
         if (typeof migrate === 'function') await migrate();
 
-        // 2. Run seed script to add your 47 restaurants 
         console.log('Running automatic database seeding...');
         const seed = require('./scripts/seed');
         if (typeof seed === 'function') await seed();
@@ -123,7 +132,6 @@ async function start() {
         console.log('--- Database Auto-Initialization Completed ---');
       }
 
-      // Ensure notifications table is always created
       await pool.query(`
         CREATE TABLE IF NOT EXISTS notifications (
           id SERIAL PRIMARY KEY,
