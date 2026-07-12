@@ -22,10 +22,16 @@ const { startReminderCron } = require('./cron/reminders');
 const app = express();
 const server = http.createServer(app);
 
-// 🟢 FIXED: Match Socket.io CORS rules with your Vercel URL
+// 🟢 FIXED CORS ORIGINS: Included port 5173 for local development
+const allowedOrigins = [
+  'https://table-reserve-repo-frontend.vercel.app', 
+  'http://localhost:5173', 
+  'http://127.0.0.1:5173'
+];
+
 const io = new Server(server, { 
   cors: { 
-    origin: ['https://table-reserve-repo-frontend.vercel.app', 'http://localhost:3000'],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
   } 
@@ -52,9 +58,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// 🟢 FIXED: Explicitly allow Vercel to cross-communicate with backend routes
+// 🟢 FIXED CORS MIDDLEWARE: Standardized to accept local Vite frontend requests
 app.use(cors({
-  origin: ['https://table-reserve-repo-frontend.vercel.app', 'http://localhost:3000'],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
