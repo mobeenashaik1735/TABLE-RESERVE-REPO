@@ -1,8 +1,12 @@
 import axios from 'axios';
 
+// Automatically choose local vs live server addresses
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 const API = axios.create({
-  // Replace this with your exact Render backend URL
-  baseURL: 'https://table-reserve-repo.onrender.com/api', 
+  baseURL: isLocalhost 
+    ? 'http://localhost:3000/api'                    // When running on VS Code (Local)
+    : 'https://table-reserve-repo.onrender.com/api', // When running on Vercel (Live Production)
   headers: {
     'Content-Type': 'application/json',
   },
